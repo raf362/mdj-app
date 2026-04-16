@@ -25,16 +25,15 @@ const callAI=async p=>{
   return d.choices[0].message.content;
 };
 
-// --- Rendu du contenu du cours (Fix : Alignement et couleurs) ---
 const MD = ({ txt }) => {
   if (!txt) return null;
   return <div className="prose-mdj" style={{textAlign:'left'}}>
     {txt.split('\n').map((l, i) => {
-      if (l.startsWith('## ')) return <h2 key={i} style={{color:'#c96442',fontWeight:700,fontSize:'1.1rem',marginTop:'1.5rem',marginBottom:'0.5rem'}}>{l.slice(3)}</h2>;
-      if (l.startsWith('### ')) return <h3 key={i} style={{color:'#8b5e3c',fontWeight:600,fontSize:'1rem',marginTop:'1.2rem',marginBottom:'0.4rem'}}>{l.slice(4)}</h3>;
+      if (l.startsWith('## ')) return <h2 key={i} style={{color:'#c96442',fontWeight:700,fontSize:'1.1rem',marginTop:'1.5rem',marginBottom:'0.5rem',textAlign:'left'}}>{l.slice(3)}</h2>;
+      if (l.startsWith('### ')) return <h3 key={i} style={{color:'#8b5e3c',fontWeight:600,fontSize:'1rem',marginTop:'1.2rem',marginBottom:'0.4rem',textAlign:'left'}}>{l.slice(4)}</h3>;
       if (l.startsWith('- ')||l.startsWith('* ')) return <li key={i} style={{color:'#3d2b1f',fontSize:'0.9rem',marginLeft:'1rem',marginBottom:'0.3rem'}}>{l.slice(2)}</li>;
       if (l.trim() === '') return <br key={i}/>;
-      return <p key={i} style={{color:'#3d2b1f',fontSize:'0.9rem',lineHeight:'1.6',marginBottom:'0.8rem'}}>{l.replace(/\*\*/g, '')}</p>;
+      return <p key={i} style={{color:'#3d2b1f',fontSize:'0.9rem',lineHeight:'1.6',marginBottom:'0.8rem',textAlign:'left'}}>{l.replace(/\*\*/g, '')}</p>;
     })}
   </div>;
 };
@@ -48,8 +47,9 @@ const s={
   card:{background:'#fffaf7',border:'1px solid #e8d5c4',borderRadius:'12px',padding:'1.5rem',marginBottom:'1rem'},
   btn:()=>({padding:'0.6rem 1.2rem',borderRadius:'8px',border:'none',cursor:'pointer',background:'#c96442',color:'#fff',fontSize:'0.85rem',fontWeight:500}),
   tag:(color)=>({padding:'4px 12px',borderRadius:'20px',fontSize:'0.75rem',fontWeight:600,background:color+'18',color:color,border:`1px solid ${color}30`}),
-  // Fix des onglets (Text color visible)
-  tabBtn:(active)=>({flex:1,padding:'0.6rem',border:'none',borderRadius:'8px',cursor:'pointer',fontSize:'0.75rem',fontWeight:active?700:500,background:active?'#fff':'transparent',color:active?'#c96442':'#9c7b6b',transition:'0.2s'}),
+  tabBtn:(active)=>({flex:1,padding:'0.6rem',border:'none',borderRadius:'8px',cursor:'pointer',fontSize:'0.75rem',fontWeight:active?700:500,background:active?'#fff':'transparent',color:active?'#c96442':'#9c7b6b'}),
+  // Fix des options de quiz (Couleur du texte corrigée)
+  optionBtn:(active, color)=>({display:'block',width:'100%',textAlign:'left',padding:'0.8rem',marginTop:'8px',borderRadius:'10px',border:'1px solid #e8d5c4',background:active?color+'15':'#fff',color:'#3d2b1f',fontSize:'0.85rem',cursor:'pointer',transition:'background 0.2s'}),
 };
 
 export default function App(){
@@ -69,7 +69,7 @@ export default function App(){
     if(!node)return;
     ['course','quiz','lab','test'].forEach(t=>localStorage.removeItem(ck(node.id,t)));
     setContent(null);setQz({q:[],a:{},done:false,score:0});
-    alert("Contenu actualisé. Recharge le module.");
+    alert("Cache vidé.");
   };
 
   const loadTab=async(n,t)=>{
@@ -83,11 +83,11 @@ export default function App(){
     setLoading(true);
     try{
       let p;
-      if(t==='course') p=`Tu es un professeur expert. Crée un cours simple et pédagogique sur : ${n.t}. Utilise une analogie concrète. Structure : ## Concept, ### Fonctionnement, ### Exemple, ### Résumé (liste à puces). Pas de texte centré. Réponds en Markdown.`;
+      if(t==='course') p=`Tu es un professeur expert. Crée un cours simple sur ${n.t}. Structure : ## Concept, ### Fonctionnement, ### Exemple, ### Résumé. Alignement à gauche. Markdown.`;
       else{
         let c=store.get(ck(n.id,'course'));
         if(!c){c=await callAI(`Cours sur ${n.t}`);store.set(ck(n.id,'course'),c);}
-        p=`Basé sur ce cours : "${c}", génère un ${t} sur ${n.t}. JSON pour quiz/test : {"questions":[{"q":"","options":[],"answer":0}]}.`;
+        p=`Basé sur ce cours : "${c}", génère un ${t} sur ${n.t}. JSON pour quiz/test : {"questions":[{"q":"","options":[],"answer":0}]}. Les questions doivent porter sur les notions du cours.`;
       }
       const res=await callAI(p);
       if(t==='quiz'||t==='test'){
@@ -118,24 +118,26 @@ export default function App(){
       <div style={s.app}>
         <Sidebar/>
         <main style={s.main}>
-          <button onClick={()=>setView('rm')} style={{background:'none',border:'none',color:'#c96442',cursor:'pointer',marginBottom:'1rem',fontSize:'0.9rem'}}>← Retour</button>
-          <div style={{marginBottom:'1.5rem'}}><span style={s.tag(R.color)}>{node.t}</span></div>
+          <button onClick={()=>setView('rm')} style={{background:'none',border:'none',color:'#c96442',cursor:'pointer',marginBottom:'1rem',fontSize:'0.9rem',textAlign:'left'}}>← Retour</button>
+          <div style={{marginBottom:'1.5rem',textAlign:'left'}}><span style={s.tag(R.color)}>{node.t}</span></div>
           <div style={{display:'flex',gap:'4px',background:'#fdf6f0',padding:'5px',borderRadius:'12px',marginBottom:'1.5rem',border:'1px solid #e8d5c4'}}>
             {['course','quiz','lab','test'].map(t=>(
               <button key={t} onClick={()=>{setTab(t);loadTab(node,t);}} style={s.tabBtn(tab===t)}>{t.toUpperCase()}</button>
             ))}
           </div>
           <div style={s.card}>
-            {loading ? <p style={{color:'#9c7b6b',textAlign:'center'}}>Génération par l'IA...</p> : (tab==='course'||tab==='lab' ? 
+            {loading ? <p style={{color:'#9c7b6b',textAlign:'center'}}>IA en action...</p> : (tab==='course'||tab==='lab' ? 
               <div>
                 <MD txt={content}/>
-                <button onClick={deleteCurrentCache} style={{marginTop:'2rem',background:'none',border:'none',color:'#c96442',fontSize:'0.7rem',cursor:'pointer',opacity:0.6}}>🗑️ Effacer le cache</button>
+                <button onClick={deleteCurrentCache} style={{marginTop:'2rem',background:'none',border:'none',color:'#c96442',fontSize:'0.7rem',cursor:'pointer',opacity:0.6,display:'block'}}>🗑️ Effacer le cache</button>
               </div> : 
-              <div>
+              <div style={{textAlign:'left'}}>
                 {qz.q.map((q,i)=>(
-                  <div key={i} style={{marginBottom:'1.5rem'}}>
-                    <p style={{fontWeight:600,color:'#3d2b1f',marginBottom:'0.5rem'}}>{i+1}. {q.q}</p>
-                    {q.options.map((opt,j)=><button key={j} onClick={()=>!qz.done&&setQz(p=>({...p,a:{...p.a,[i]:j}}))} style={{display:'block',width:'100%',textAlign:'left',padding:'0.7rem',marginTop:'5px',borderRadius:'8px',border:'1px solid #e8d5c4',background:qz.a[i]===j?R.color+'15':'#fff',fontSize:'0.85rem'}}>{opt}</button>)}
+                  <div key={i} style={{marginBottom:'2rem'}}>
+                    <p style={{fontWeight:700,color:'#3d2b1f',marginBottom:'0.8rem',fontSize:'1rem'}}>{i+1}. {q.q}</p>
+                    {q.options.map((opt,j)=>(
+                       <button key={j} onClick={()=>!qz.done&&setQz(p=>({...p,a:{...p.a,[i]:j}}))} style={s.optionBtn(qz.a[i]===j, R.color)}>{opt}</button>
+                    ))}
                   </div>
                 ))}
                 {!qz.done && <button onClick={()=>{
@@ -143,8 +145,8 @@ export default function App(){
                    const sc=Math.round(ok/qz.q.length*100);
                    setQz(p=>({...p,done:true,score:sc}));
                    if(tab==='test'&&sc>=70){const np={...prog,[node.id]:{completed:true}};setProg(np);localStorage.setItem('mdj_prog',JSON.stringify(np));}
-                }} style={s.btn()}>Valider</button>}
-                {qz.done && <div style={{padding:'1rem',background:qz.score>=70?'#e8f5ec':'#fdecea',borderRadius:'8px',textAlign:'center',marginTop:'1rem',color:qz.score>=70?'#2d7a47':'#c94242',fontWeight:700}}>Score : {qz.score}%</div>}
+                }} style={s.btn()}>Valider le test</button>}
+                {qz.done && <div style={{padding:'1rem',background:qz.score>=70?'#e8f5ec':'#fdecea',borderRadius:'10px',textAlign:'center',marginTop:'1.5rem',color:qz.score>=70?'#2d7a47':'#c94242',fontWeight:700}}>Score : {qz.score}%</div>}
               </div>
             )}
           </div>
@@ -180,8 +182,8 @@ export default function App(){
       <main style={s.main}>
         <h1 style={{color:'#3d2b1f',fontSize:'1.8rem'}}>Salut, Moucharaf 👋</h1>
         <div style={s.card}>
-          <p style={{color:'#6b4c38'}}>Tu as complété <strong>{done}</strong> modules sur {total}.</p>
-          <button onClick={()=>setView('rm')} style={{...s.btn(),marginTop:'1rem'}}>Continuer l'aventure</button>
+          <p style={{color:'#6b4c38'}}>Continuons là où tu t'es arrêté.</p>
+          <button onClick={()=>setView('rm')} style={{...s.btn(),marginTop:'1rem'}}>Ouvrir la Roadmap</button>
         </div>
       </main>
     </div>
