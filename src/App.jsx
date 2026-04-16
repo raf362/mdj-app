@@ -71,17 +71,13 @@ const callAI=async p=>{
 const MD = ({ txt }) => {
   if (!txt) return null;
   return <div className="prose-mdj">{txt.split('\n').map((l, i) => {
-    if (l.startsWith('## ')) return <h2 key={`h2-${i}`} style={{color:'#c96442',fontWeight:700,fontSize:'1rem',marginTop:'1.25rem',marginBottom:'0.25rem'}}>{l.slice(3)}</h2>;
-    if (l.startsWith('### ')) return <h3 key={`h3-${i}`} style={{color:'#8b5e3c',fontWeight:600,fontSize:'0.9rem',marginTop:'1rem',marginBottom:'0.25rem'}}>{l.slice(4)}</h3>;
+    if (l.startsWith('## ')) return <h2 key={i} style={{color:'#c96442', fontWeight:700, fontSize:'1rem', marginTop:'1.25rem'}}>{l.slice(3)}</h2>;
+    if (l.startsWith('### ')) return <h3 key={i} style={{color:'#8b5e3c', fontWeight:600, fontSize:'0.9rem', marginTop:'1rem'}}>{l.slice(4)}</h3>;
     if (l.startsWith('- ')||l.startsWith('* ')) return <li key={`li-${i}`} style={{color:'#3d2b1f',fontSize:'0.875rem',lineHeight:'1.6',marginLeft:'1rem'}}>{l.slice(2)}</li>;
     if (/^\d+\. /.test(l)) return <li key={`lo-${i}`} style={{color:'#3d2b1f',fontSize:'0.875rem',lineHeight:'1.6',marginLeft:'1rem',listStyleType:'decimal'}}>{l.replace(/^\d+\. /,'')}</li>;
     if (!l.trim()) return <br key={`br-${i}`}/>;
     const parts = l.split(/(`[^`]+`)/g);
-    return <p key={`p-${i}`} style={{color:'#3d2b1f',fontSize:'0.875rem',lineHeight:'1.7',margin:'0.2rem 0'}}>
-      {parts.map((p2, j) => p2.startsWith('`') 
-        ? <code key={`c-${i}-${j}`} style={{background:'#f0e8df',color:'#c96442',padding:'1px 5px',borderRadius:'4px',fontSize:'0.8rem',fontFamily:'monospace'}}>{p2.replace(/`/g,'')}</code> 
-        : p2)}
-    </p>;
+    return <p key={i} style={{color:'#3d2b1f', fontSize:'0.875rem', lineHeight:'1.7'}}>{l}</p>;
   })}</div>;
 };
 
@@ -91,12 +87,35 @@ const s={
   sidebarMobile:{position:'fixed',bottom:0,left:0,right:0,background:'#fdf6f0',borderTop:'1px solid #e8d5c4',display:'flex',zIndex:100,padding:'0.25rem 0'},
   main:{flex:1,marginLeft:'240px',padding:'2rem',maxWidth:'860px'},
   mainMobile:{flex:1,paddingBottom:'70px',padding:'1rem'},
-  logo:{padding:'0.75rem 1.25rem 1.25rem',borderBottom:'1px solid #e8d5c4',marginBottom:'0.5rem'},
-  navBtn:(active)=>({display:'flex',alignItems:'center',gap:'0.625rem',width:'100%',padding:'0.6rem 1.25rem',background:active?'#fde8df':'transparent',color:active?'#c96442':'#6b4c38',fontWeight:active?600:400,fontSize:'0.875rem',border:'none',cursor:'pointer',textAlign:'left',borderRadius:0,transition:'background 0.15s'}),
+  // À remplacer dans l'objet "s"
+logo: { 
+  padding: '1.5rem', 
+  fontWeight: 800, 
+  color: '#c96442', 
+  borderBottom: '1px solid #e8d5c4' 
+},
+navBtn: (active) => ({
+  width: '100%',
+  padding: '0.75rem 1.25rem',
+  background: active ? '#fde8df' : 'transparent',
+  color: active ? '#c96442' : '#6b4c38',
+  fontWeight: active ? 600 : 400,
+  border: 'none',
+  cursor: 'pointer',
+  textAlign: 'left'
+}),
   navBtnMob:(active)=>({flex:1,display:'flex',flexDirection:'column',alignItems:'center',padding:'0.5rem 0.25rem',background:'transparent',border:'none',cursor:'pointer',color:active?'#c96442':'#9c7b6b',fontSize:'0.65rem',fontWeight:active?600:400,gap:'2px'}),
   card:{background:'#fffaf7',border:'1px solid #e8d5c4',borderRadius:'12px',padding:'1.25rem',marginBottom:'1rem'},
   btn:(variant='primary')=>({padding:'0.5rem 1rem',borderRadius:'8px',border:'none',cursor:'pointer',fontSize:'0.8rem',fontWeight:500,background:variant==='primary'?'#c96442':variant==='ghost'?'transparent':'#f0e8df',color:variant==='primary'?'#fff':variant==='ghost'?'#9c7b6b':'#6b4c38',transition:'opacity 0.15s'}),
-  tag:(color)=>({display:'inline-flex',alignItems:'center',gap:'4px',padding:'2px 8px',borderRadius:'20px',fontSize:'0.7rem',fontWeight:500,background:color+'18',color:color,border:`1px solid ${color}30`}),
+  // À remplacer dans l'objet "s"
+  tag: (color) => ({
+    padding: '2px 8px',
+    borderRadius: '20px',
+    fontSize: '0.7rem',
+    background: color + '18', // Utilise 18 pour l'opacité exacte
+    color: color,
+    border: `1px solid ${color}30`
+  }),
 };
 
 export default function App(){
