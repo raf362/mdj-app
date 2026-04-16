@@ -154,6 +154,22 @@ export default function App(){
   },[]);
 
   const saveProg=np=>{setProg(np);store.set('mdj_prog',JSON.stringify(np));};
+  const deleteCurrentCache = () => {
+    if (!node) return;
+    
+    // 1. On vide les états React pour l'affichage immédiat
+    setContent(null);
+    setQz({q:[],a:{},done:false,score:0,err:false});
+    
+    // 2. On supprime précisément les entrées du localStorage
+    // en utilisant ta fonction ck(id, type)
+    const types = ['course', 'quiz', 'lab', 'test'];
+    types.forEach(t => {
+      localStorage.removeItem(ck(node.id, t));
+    });
+    
+    alert(`Cache vidé pour ${node.t}. Tu peux relancer le module.`);
+  };
   const saveCerts=nc=>{setMyCerts(nc);store.set('mdj_certs',JSON.stringify(nc));};
   const unlocked=n=>n.d.length===0||n.d.every(id=>prog[id]?.completed);
   const statusOf=id=>{if(prog[id]?.completed)return'done';const n=ALL.find(x=>x.id===id);return n&&unlocked(n)?'open':'locked';};
@@ -246,6 +262,24 @@ export default function App(){
             <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
           </div>:(tab==='course'||tab==='lab')?<div>
             <MD txt={content}/>
+            {/* Bouton de suppression du cache */}
+            <div style={{marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #e8d5c4', textAlign: 'right'}}>
+              <button 
+                onClick={deleteCurrentCache}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #c96442',
+                  color: '#c96442',
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  opacity: 0.7
+                }}
+              >
+                🗑️ Effacer le cache de ce module
+              </button>
+            </div>  
             {tab==='course'&&c2&&<div style={{marginTop:'1.5rem',padding:'1rem',background:'#fffbf5',border:'1px solid #f0d9b5',borderRadius:'10px'}}>
               <p style={{fontWeight:600,color:'#c17f3e',fontSize:'0.85rem',marginBottom:'0.75rem'}}>🏅 Certifications recommandées</p>
               {c2.map((c3,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'0.6rem 0.75rem',background:'#fff',borderRadius:'8px',marginBottom:'0.5rem',border:'1px solid #f0d9b5'}}>
