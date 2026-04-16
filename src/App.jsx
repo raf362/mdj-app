@@ -19,7 +19,7 @@ const RMS={
 const store={get:k=>{try{return localStorage.getItem(k);}catch{return null;}},set:(k,v)=>{try{localStorage.setItem(k,v);}catch{}}};
 
 const callAI=async p=>{
-  const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${GROQ_KEY}`},body:JSON.stringify({model:'llama-3.1-8b-instant',messages:[{role:'user',content:p}],max_tokens:1000,temperature:0.3})});
+  const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${GROQ_KEY}`},body:JSON.stringify({model:'llama-3.1-8b-instant',messages:[{role:'user',content:p}],max_tokens:2000,temperature:0.3})});
   const d=await r.json();
   if(d.error)throw new Error(d.error.message);
   return d.choices[0].message.content;
@@ -69,7 +69,6 @@ export default function App(){
     if(!node)return;
     ['course','quiz','lab','test'].forEach(t=>localStorage.removeItem(ck(node.id,t)));
     setContent(null); setQz({q:[],a:{},done:false,score:0});
-    alert("Mémoire effacée pour ce module.");
     loadTab(node, tab);
   };
 
@@ -94,7 +93,7 @@ export default function App(){
       if(t==='course') p=`Crée un cours simple sur ${n.t}. ## Concept, ### Fonctionnement, ### Exemple, ### Résumé. Markdown.`;
       else {
         let context = store.get(ck(n.id, 'course')) || n.t;
-        p=`Génère un Quiz JSON de 3 questions sur "${n.t}" basé sur ce cours: ${context}. Format STRICT: {"questions":[{"q":"Texte?","options":["A","B","C","D"],"answer":0}]}`;
+        p=`Génère un Quiz JSON de 10 questions précises sur "${n.t}" basé sur ce cours: ${context}. Format STRICT: {"questions":[{"q":"Texte?","options":["A","B","C","D"],"answer":0}]}. Génère exactement 10 questions.`;
       }
       
       const res=await callAI(p);
@@ -143,7 +142,7 @@ export default function App(){
             ))}
           </div>
           <div style={s.card}>
-            {loading ? <p style={{textAlign:'center',padding:'2rem',color:'#9c7b6b',fontSize:'0.9rem'}}>L'IA génère tes questions...</p> : (
+            {loading ? <p style={{textAlign:'center',padding:'2rem',color:'#9c7b6b',fontSize:'0.9rem'}}>L'IA prépare tes 10 questions...</p> : (
               (tab==='course'||tab==='lab') ? <div><MD txt={content}/></div> : (
                 <div style={{textAlign:'left'}}>
                   {qz.q.length > 0 ? (
@@ -207,7 +206,7 @@ export default function App(){
       <main style={s.main(isMob)}>
         <h1 style={{color:'#3d2b1f',fontSize:'1.5rem',marginTop:'1rem'}}>Salut Moucharaf 👋</h1>
         <div style={s.card}>
-          <p style={{color:'#6b4c38',fontSize:'0.9rem'}}>Prêt pour une nouvelle leçon ? {doneCount} étapes déjà franchies.</p>
+          <p style={{color:'#6b4c38',fontSize:'0.9rem'}}>Prêt pour une session de 10 questions ? {doneCount} étapes déjà validées.</p>
           <button onClick={()=>setView('rm')} style={{...s.btn, marginTop:'1.5rem'}}>Ouvrir la Roadmap</button>
         </div>
       </main>
