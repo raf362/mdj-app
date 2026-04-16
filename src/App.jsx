@@ -176,62 +176,51 @@ export default function App(){
   const total=ALL.length,done=Object.values(prog).filter(p=>p.completed).length,pct=Math.round(done/total*100);
   const ck=(id,t)=>`mdj_c_${id}_${t}`;
 
- const loadTab=async(n,t)=>{
-    setLoading(true);setContent(null);setQz({q:[],a:{},done:false,score:0,err:false});
-    const cached=store.get(ck(n.id,t));
-    if(cached){if(t==='course'||t==='lab'){setContent(cached);setLoading(false);return;}try{setQz(p=>({...p,q:JSON.parse(cached)}));setLoading(false);return;}catch{}}
-    if(offline||noKey){setContent(noKey?'⚠️ Clé Groq manquante':'📡 Hors ligne');setLoading(false);return;}
+  const loadTab = async (n, t) => {
+    const key = ck(n.id, t);
+    const courseKey = ck(n.id, 'course');
     
-    try{
-      if(t==='course'){
-        const prompt = `Tu es un expert en pédagogie numérique inspiré par OpenClassrooms et Cisco Academy. 
-        Génère un cours magistral pour le module "${n.t}".
-        Structure attendue en Markdown :
-        ## 🏗️ Architecture et Concept
-        Explique le concept comme si j'étais en LPDA (Licence Pro). Utilise une terminologie technique précise mais expliquée.
-        ## 🔑 Points Clés (Standard de l'industrie)
-        Liste les standards et protocoles réels utilisés en entreprise (RFC, normes ISO, etc.).
-        ## 💻 Cas Pratique & Implémentation
-        Donne un exemple de code ou de configuration (ex: CLI Cisco, YAML Docker ou JS) extrêmement bien commenté.
-        ## ⚠️ Erreurs fréquentes & Best Practices
-        Ce qu'un développeur junior doit éviter pour garantir la sécurité et la performance.`;
+    const cached = store.get(key);
+    if (cached) {
+      if (t === 'quiz' || t === 'test') setQz({ ...JSON.parse(cached), a: {}, done: false });
+      else setContent(cached);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      let prompt;
+      
+      if (t === 'course') {
+        prompt = coursePrompt(n.t);
+      } else {
+        // On récupère le cours pour que le quiz/lab/test soit dépendant
+        let courseData = store.get(courseKey);
         
-        const txt = await callAI(prompt);
-        setContent(txt);
-        store.set(ck(n.id,t),txt);
-      }
-      else if(t==='lab'){
-        const prompt = `Crée un TP (Travail Pratique) style freeCodeCamp sur "${n.t}". 
-        Structure en Markdown :
-        ## 🧪 Mini-Lab : Mise en situation réelle
-        ### 🎯 Objectif métier
-        ### 🛠️ Pré-requis & Environnement
-        ### 📋 Étapes guidées (Pas à pas)
-        ### 💻 Code/Config de départ
-        ### ✅ Critères de réussite (Comment tester son travail)`;
+        // Si le cours n'existe pas encore en cache, on le génère d'abord (optionnel mais recommandé)
+        if (!courseData) {
+          courseData = await callAI(coursePrompt(n.t));
+          store.set(courseKey, courseData);
+        }
         
-        const txt = await callAI(prompt);
-        setContent(txt);
-        store.set(ck(n.id,t),txt);
+        prompt = dependentPrompt(n.t, t, courseData);
       }
-      else{
-        const isTest = t === 'test';
-        const count = isTest ? 10 : 5;
-        const prompt = `Génère exactement ${count} questions de type "Certification professionnelle" (ex: CCNA, AWS Cloud Practitioner ou OWASP) sur "${n.t}".
-        Les questions doivent être des scénarios réels : "Un client a tel problème, quelle est la commande/méthode à utiliser ?".
-        Réponds UNIQUEMENT avec un objet JSON sans texte autour :
-        {"questions":[{"q":"...","options":["...","...","...","..."],"answer":index}]}`;
-        
-        const txt = await callAI(prompt);
-        const match = txt.match(/\{[\s\S]*\}/);
-        if(!match) throw new Error('Format JSON invalide');
-        const q = JSON.parse(match[0]).questions;
-        setQz(p=>({...p,q}));
-        store.set(ck(n.id,t),JSON.stringify(q));
+
+      const res = await callAI(prompt);
+
+      if (t === 'quiz' || t === 'test') {
+        const match = res.match(/\{[\s\S]*\}/);
+        if (match) {
+          const data = { q: JSON.parse(match[0]).questions };
+          setQz({ ...data, a: {}, done: false });
+          store.set(key, JSON.stringify(data));
+        }
+      } else {
+        setContent(res);
+        store.set(key, res);
       }
-    } catch(e) {
-      if(t==='course'||t==='lab') setContent(`❌ Erreur pédagogique : ${e.message}`);
-      else setQz(p=>({...p,err:true}));
+    } catch (e) {
+      console.error("Erreur:", e);
     }
     setLoading(false);
   };
