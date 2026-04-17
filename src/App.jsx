@@ -44,7 +44,12 @@ const s={
   main:(isMob)=>({flex:1,marginLeft:isMob?0:'240px',padding:isMob?'1rem':'2rem',paddingBottom:isMob?'100px':'2rem'}),
   card:{background:'#fffaf7',border:'1px solid #e8d5c4',borderRadius:'16px',padding:'1.25rem',marginBottom:'1rem'},
   btn:{padding:'0.8rem 1.5rem',borderRadius:'12px',border:'none',cursor:'pointer',background:'#c96442',color:'#fff',fontSize:'0.85rem',fontWeight:600,width:'100%'},
-  optionBtn:(active, color)=>({display:'block',width:'100%',textAlign:'left',padding:'1rem',marginTop:'10px',borderRadius:'12px',border:active?`2px solid ${color}`:'1px solid #e8d5c4',background:active?color+'10':'#fff',color:'#3d2b1f',fontSize:'0.85rem',cursor:'pointer'}),
+  optionBtn:(active, color, isDone, isCorrect, isUserChoice)=>({
+    display:'block',width:'100%',textAlign:'left',padding:'1rem',marginTop:'10px',borderRadius:'12px',
+    border: isDone ? (isCorrect ? '2px solid #2d7a47' : isUserChoice ? '2px solid #c94242' : '1px solid #e8d5c4') : (active ? `2px solid ${color}` : '1px solid #e8d5c4'),
+    background: isDone ? (isCorrect ? '#e8f5ec' : isUserChoice ? '#fdecea' : '#fff') : (active ? color+'10' : '#fff'),
+    color:'#3d2b1f',fontSize:'0.85rem',cursor:'pointer'
+  }),
   tabBtn:(active)=>({flex:1,padding:'0.6rem',border:'none',borderRadius:'8px',cursor:'pointer',fontSize:'0.7rem',fontWeight:active?700:500,background:active?'#fff':'transparent',color:active?'#c96442':'#9c7b6b'}),
 };
 
@@ -65,6 +70,7 @@ export default function App(){
     return () => window.removeEventListener('resize', h);
   }, []);
 
+  const ck=(id,t)=>`mdj_c_${id}_${t}`;
   const delCache=()=>{
     if(!node)return;
     ['course','quiz','lab','test'].forEach(t=>localStorage.removeItem(ck(node.id,t)));
@@ -72,16 +78,13 @@ export default function App(){
     loadTab(node, tab);
   };
 
-  const ck=(id,t)=>`mdj_c_${id}_${t}`;
-  const doneCount=Object.values(prog).filter(p=>p.completed).length,pct=Math.round(doneCount/ALL.length*100);
-
   const loadTab=async(n,t)=>{
     const key=ck(n.id,t);
     const cached=store.get(key);
     setLoading(true);
     if(t==='course'||t==='lab'){ setContent(null); } else { setQz({q:[],a:{},done:false,score:0}); }
 
-    if(cached){
+    if(cached && t !== 'lab'){
       if(t==='quiz'||t==='test') setQz({...JSON.parse(cached),a:{},done:false});
       else setContent(cached);
       setLoading(false);
@@ -90,23 +93,23 @@ export default function App(){
 
     try{
       let p;
-      if(t==='course') p=`Crée un cours simple sur ${n.t}. ## Concept, ### Fonctionnement, ### Exemple, ### Résumé. Markdown.`;
+      if(t==='course') p=`Cours simple sur ${n.t}. ## Concept, ### Fonctionnement, ### Exemple, ### Résumé. Markdown.`;
+      else if(t==='lab') p=`Propose 3 exercices pratiques (TP) pour s'entraîner sur ${n.t}. Utilise des puces et du Markdown. Pas de JSON.`;
       else {
-        let context = store.get(ck(n.id, 'course')) || n.t;
-        p=`Génère un Quiz JSON de 10 questions précises sur "${n.t}" basé sur ce cours: ${context}. Format STRICT: {"questions":[{"q":"Texte?","options":["A","B","C","D"],"answer":0}]}. Génère exactement 10 questions.`;
+        let ctx = store.get(ck(n.id, 'course')) || n.t;
+        p=`Génère un Quiz JSON de 10 questions sur "${n.t}" (Contexte: ${ctx}). Format STRICT: {"questions":[{"q":"Question?","options":["A","B","C","D"],"answer":0}]}`;
       }
       
       const res=await callAI(p);
       if(t==='quiz'||t==='test'){
         const start = res.indexOf('{');
         const end = res.lastIndexOf('}') + 1;
-        const jsonStr = res.substring(start, end);
-        const parsed = JSON.parse(jsonStr);
+        const parsed = JSON.parse(res.substring(start, end));
         setQz({q:parsed.questions, a:{}, done:false});
         store.set(key, JSON.stringify({q:parsed.questions}));
       } else {
         setContent(res);
-        store.set(key, res);
+        if(t!=='lab') store.set(key, res);
       }
     }catch(e){ console.error(e); }
     setLoading(false);
@@ -117,7 +120,7 @@ export default function App(){
       <nav style={s.mobileNav}>
         <button onClick={()=>setView('dash')} style={{background:'none',border:'none',color:view==='dash'?'#c96442':'#9c7b6b',fontSize:'0.75rem',display:'flex',flexDirection:'column',alignItems:'center'}}><span>🏠</span><span>Accueil</span></button>
         <button onClick={()=>setView('rm')} style={{background:'none',border:'none',color:view==='rm'?'#c96442':'#9c7b6b',fontSize:'0.75rem',display:'flex',flexDirection:'column',alignItems:'center'}}><span>🗺️</span><span>Roadmap</span></button>
-        <div style={{color:'#c96442',fontWeight:700,fontSize:'0.8rem'}}>{pct}%</div>
+        <div style={{color:'#c96442',fontWeight:700,fontSize:'0.8rem'}}>{Math.round(Object.values(prog).filter(p=>p.completed).length/ALL.length*100)}%</div>
       </nav>
     ) : (
       <aside style={s.sidebar}>
@@ -142,31 +145,31 @@ export default function App(){
             ))}
           </div>
           <div style={s.card}>
-            {loading ? <p style={{textAlign:'center',padding:'2rem',color:'#9c7b6b',fontSize:'0.9rem'}}>L'IA prépare tes 10 questions...</p> : (
+            {loading ? <p style={{textAlign:'center',padding:'2rem',color:'#9c7b6b'}}>Chargement...</p> : (
               (tab==='course'||tab==='lab') ? <div><MD txt={content}/></div> : (
                 <div style={{textAlign:'left'}}>
-                  {qz.q.length > 0 ? (
-                    <>
-                      {qz.q.map((q,i)=>(
-                        <div key={i} style={{marginBottom:'1.5rem'}}>
-                          <p style={{fontWeight:700,color:'#3d2b1f',marginBottom:'0.8rem',fontSize:'0.95rem'}}>{i+1}. {q.q}</p>
-                          {q.options.map((opt,j)=>(
-                             <button key={j} onClick={()=>!qz.done && setQz(p=>({...p,a:{...p.a,[i]:j}}))} style={s.optionBtn(qz.a[i]===j, R.color)}>{opt}</button>
-                          ))}
-                        </div>
+                  {qz.q.map((q,i)=>(
+                    <div key={i} style={{marginBottom:'1.5rem'}}>
+                      <p style={{fontWeight:700,color:'#3d2b1f',marginBottom:'0.8rem',fontSize:'0.95rem'}}>{i+1}. {q.q}</p>
+                      {q.options.map((opt,j)=>(
+                         <button key={j} onClick={()=>!qz.done && setQz(p=>({...p,a:{...p.a,[i]:j}}))} 
+                                 style={s.optionBtn(qz.a[i]===j, R.color, qz.done, j===q.answer, qz.a[i]===j)}>
+                           {opt} {qz.done && j===q.answer && " ✅"}
+                           {qz.done && qz.a[i]===j && j!==q.answer && " ❌"}
+                         </button>
                       ))}
-                      {!qz.done && <button onClick={()=>{
-                         let ok=0; qz.q.forEach((q,i)=>{if(qz.a[i]===q.answer)ok++;});
-                         const sc=Math.round(ok/qz.q.length*100);
-                         setQz(p=>({...p,done:true,score:sc}));
-                         if(tab==='test'&&sc>=70){
-                           const nP={...prog,[node.id]:{completed:true}};
-                           setProg(nP); localStorage.setItem('mdj_prog',JSON.stringify(nP));
-                         }
-                      }} style={s.btn}>Valider mes réponses</button>}
-                      {qz.done && <div style={{padding:'1rem',background:qz.score>=70?'#e8f5ec':'#fdecea',borderRadius:'12px',textAlign:'center',color:qz.score>=70?'#2d7a47':'#c94242',fontWeight:800,marginTop:'1rem'}}>Score : {qz.score}%</div>}
-                    </>
-                  ) : <p style={{textAlign:'center',color:'#9c7b6b'}}>Clique sur l'onglet pour charger les questions.</p>}
+                    </div>
+                  ))}
+                  {!qz.done && <button onClick={()=>{
+                     let ok=0; qz.q.forEach((q,i)=>{if(qz.a[i]===q.answer)ok++;});
+                     const sc=Math.round(ok/qz.q.length*100);
+                     setQz(p=>({...p,done:true,score:sc}));
+                     if(tab==='test'&&sc>=70){
+                       const nP={...prog,[node.id]:{completed:true}};
+                       setProg(nP); localStorage.setItem('mdj_prog',JSON.stringify(nP));
+                     }
+                  }} style={s.btn}>Valider mes réponses</button>}
+                  {qz.done && <div style={{padding:'1rem',background:qz.score>=70?'#e8f5ec':'#fdecea',borderRadius:'12px',textAlign:'center',color:qz.score>=70?'#2d7a47':'#c94242',fontWeight:800,marginTop:'1rem'}}>Score : {qz.score}%</div>}
                 </div>
               )
             )}
@@ -206,7 +209,7 @@ export default function App(){
       <main style={s.main(isMob)}>
         <h1 style={{color:'#3d2b1f',fontSize:'1.5rem',marginTop:'1rem'}}>Salut Moucharaf 👋</h1>
         <div style={s.card}>
-          <p style={{color:'#6b4c38',fontSize:'0.9rem'}}>Prêt pour une session de 10 questions ? {doneCount} étapes déjà validées.</p>
+          <p style={{color:'#6b4c38',fontSize:'0.9rem'}}>Prêt pour une session de code ?</p>
           <button onClick={()=>setView('rm')} style={{...s.btn, marginTop:'1.5rem'}}>Ouvrir la Roadmap</button>
         </div>
       </main>
